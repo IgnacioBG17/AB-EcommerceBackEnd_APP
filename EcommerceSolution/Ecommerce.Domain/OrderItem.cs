@@ -7,7 +7,7 @@ namespace Ecommerce.Domain
     {
         public Product? Product { get; set; }
         public int ProductId { get; set; }
-        [Column(TypeName = "decimal(10,2)")]
+        [Column(TypeName = "DECIMAL(10,2)")]
         public decimal Precio { get; set; }
         public int Cantidad { get; set; }
         public Order? Order { get; set; }
