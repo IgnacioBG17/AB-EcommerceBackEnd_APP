@@ -1,5 +1,7 @@
 ﻿using Ecommerce.Application.Persistence;
+using Ecommerce.Application.Specifications;
 using Ecommerce.Infrastructure.Persistence;
+using Ecommerce.Infrastructure.Specification;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -55,7 +57,7 @@ namespace Ecommerce.Infrastructure.Repositories
             return await _context.Set<T>().Where(predicate).ToListAsync();
         }
 
-        public async Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>>? predicate, Func<IQueryable<T>, 
+        public async Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>>? predicate, Func<IQueryable<T>,
                           IOrderedQueryable<T>>? orderBy, string? includeString, bool disableTracking = true)
         {
             IQueryable<T> query = _context.Set<T>();
@@ -71,7 +73,7 @@ namespace Ecommerce.Infrastructure.Repositories
             return await query.ToListAsync();
         }
 
-        public async Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>>? predicate, Func<IQueryable<T>, 
+        public async Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>>? predicate, Func<IQueryable<T>,
                     IOrderedQueryable<T>>? orderBy = null, List<Expression<Func<T, object>>>? includes = null, bool disableTracking = true)
         {
             IQueryable<T> query = _context.Set<T>();
@@ -92,7 +94,7 @@ namespace Ecommerce.Infrastructure.Repositories
             return (await _context.Set<T>().FindAsync(id))!;
         }
 
-        public async Task<T> GetEntityAsync(Expression<Func<T, bool>>? predicate, List<Expression<Func<T, object>>>? includes = null, 
+        public async Task<T> GetEntityAsync(Expression<Func<T, bool>>? predicate, List<Expression<Func<T, object>>>? includes = null,
                                       bool disableTracking = true)
         {
             IQueryable<T> query = _context.Set<T>();
@@ -117,6 +119,24 @@ namespace Ecommerce.Infrastructure.Repositories
         {
             _context.Set<T>().Attach(entity);
             _context.Entry(entity).State = EntityState.Modified;
+        }
+
+        public async Task<int> CountAsync(ISpecification<T> spec)
+        {
+            return await ApplySpecification(spec).CountAsync();
+        }
+        public async Task<IReadOnlyList<T>> GetAllWithSpec(ISpecification<T> spec)
+        {
+            return await ApplySpecification(spec).ToListAsync();
+        }
+        public async Task<T> GetByIdWithSpec(ISpecification<T> spec)
+        {
+            return (await ApplySpecification(spec).FirstOrDefaultAsync())!;
+        }
+
+        public IQueryable<T> ApplySpecification(ISpecification<T> spec)
+        {
+            return SpecificationEvaluator<T>.GetQuery(_context.Set<T>().AsQueryable(), spec);
         }
     }
 }
