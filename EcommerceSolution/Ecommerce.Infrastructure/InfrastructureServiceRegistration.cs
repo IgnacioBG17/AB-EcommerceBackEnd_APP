@@ -22,6 +22,7 @@ namespace Ecommerce.Infrastructure
 
             services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
             services.Configure<CloudinarySettings>(configuration.GetSection("CloudinarySettings"));
+            services.Configure<UploadcareSettings>(configuration.GetSection("UploadcareSettings"));
             services.Configure<EmailFluentSettings>(configuration.GetSection("EmailFluentSettings"));
 
             services.AddTransient<IAuthService, AuthService>();

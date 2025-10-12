@@ -23,8 +23,8 @@ namespace Ecommerce.Application.Behaviors
             catch (Exception ex)
             {
                 var requestName = typeof(TRequest).Name;
-                _logger.LogError(ex, "Application Request: Sucedio una exception para el request {Name} {@Request}", requestName, request);
-                throw new Exception("Application Request con Errores");
+                _logger.LogError(ex, "Application Request: Sucedió una exception para el request {Name} {@Request}", requestName, request);
+                throw;
             }
         }
     }

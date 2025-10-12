@@ -1,0 +1,222 @@
+﻿using Ecommerce.Application.Contracts.Infrastructure;
+using Ecommerce.Application.Features.Auths.Users.Commands.LoginUser;
+using Ecommerce.Application.Features.Auths.Users.Commands.RegisterUser;
+using Ecommerce.Application.Features.Auths.Users.Commands.ResetPassword;
+using Ecommerce.Application.Features.Auths.Users.Commands.ResetPasswordByToken;
+using Ecommerce.Application.Features.Auths.Users.Commands.SendPassword;
+using Ecommerce.Application.Features.Auths.Users.Commands.UpdateAdminStatusUser;
+using Ecommerce.Application.Features.Auths.Users.Commands.UpdateAdminUser;
+using Ecommerce.Application.Features.Auths.Users.Commands.UpdateUser;
+using Ecommerce.Application.Features.Auths.Users.Queries.GetUserByIdQuery;
+using Ecommerce.Application.Features.Auths.Users.Queries.GetUserByToken;
+using Ecommerce.Application.Features.Auths.Users.Queries.GetUserByUsername;
+using Ecommerce.Application.Features.Auths.Users.Queries.PaginationUsers;
+using Ecommerce.Application.Features.Auths.Users.Vms;
+using Ecommerce.Application.Features.Shared.Queries;
+using Ecommerce.Application.Models.ImageManagement;
+using Ecommerce.Domain;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Net;
+using Role = Ecommerce.Application.Models.Authorization.Role;
+
+namespace Ecommerce.Api.Controllers
+{
+    [Route("api/v1/[controller]")]
+    [ApiController]
+    public class UsuarioController : ControllerBase
+    {
+        private IMediator _mediator;
+        private IManageImageService _manageImageService;
+
+        public UsuarioController(IMediator mediator, IManageImageService manageImageService)
+        {
+            _mediator = mediator;
+            _manageImageService = manageImageService;
+        }
+
+        /// <summary>
+        /// Método que me permite hacer login con Email y Password
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpPost("login", Name = "Login")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginUserCommand request)
+        {
+            return await _mediator.Send(request);
+        }
+
+        /// <summary>
+        /// Método que me permite registrarme como usuario en la plataforma
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpPost("register", Name = "Register")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task<ActionResult<AuthResponse>> Register([FromForm] RegisterUserCommand request)
+        {
+            if (request.Foto is not null)
+            {
+                var resultImage = await _manageImageService.UploadImageAsync(new ImageData
+                {
+                    ImageStream = request.Foto!.OpenReadStream(),
+                    Nombre = request.Foto.Name
+                });
+
+                request.FotoId = resultImage.PublicId;
+                request.FotoUrl = resultImage.Url;
+            }
+
+            return await _mediator.Send(request);
+        }
+
+        /// <summary>
+        /// Método que me permite cambiar el password en caso se haya olvidado por medio de un Emanil
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpPost("forgotpassword", Name = "ForgotPassword")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task<ActionResult<string>> ForgotPassword([FromBody] SendPasswordCommand request)
+        {
+            return await _mediator.Send(request);
+        }
+
+        /// <summary>
+        /// Método que me permite actualizar el password por medio del token que se envio al correo electronico
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [AllowAnonymous]
+        [HttpPost("resetpassword", Name = "ResetPassword")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task<ActionResult<string>> ResetPassword([FromBody] ResetPasswordByTokenCommand request)
+        {
+            return await _mediator.Send(request);
+        }
+
+        /// <summary>
+        /// Método que me permite actualizar el password (el mismo usuario logueado puede actualizar su password)
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPost("updatepassword", Name = "UpdatePassword")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task<ActionResult<Unit>> UpdatePassword([FromBody] ResetPasswordCommand request)
+        {
+            return await _mediator.Send(request);
+        }
+
+        /// <summary>
+        /// Método que me permite actualizar un usuario (el mismo usuario logueado puede actualizarse)
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [HttpPut("update", Name = "Update")]
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        public async Task<ActionResult<AuthResponse>> Update([FromForm] UpdateUserCommand request)
+        {
+            if (request.Foto is not null)
+            {
+                var resultImage = await _manageImageService.UploadImageAsync(new ImageData
+                {
+                    ImageStream = request.Foto!.OpenReadStream(),
+                    Nombre = request.Foto!.Name
+                });
+
+                request.FotoId = resultImage.PublicId;
+                request.FotoUrl = resultImage.Url;
+            }
+
+            return await _mediator.Send(request);
+        }
+
+        /// <summary>
+        /// Método que me permite actualizar un usuario (El usuario admin actualiza a otro usuario)
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [Authorize(Roles = Role.ADMIN)]
+        [HttpPut("updateAdminUser", Name = "UpdateAdminUser")]
+        [ProducesResponseType(typeof(Usuario), (int)HttpStatusCode.OK)]
+        public async Task<ActionResult<Usuario>> UpdateAdminUser([FromBody] UpdateAdminUserCommand request)
+        {
+            return await _mediator.Send(request);
+        }
+
+        /// <summary>
+        ///  Método que me permite actualizar el estado de un usuario (El usuario admin actualiza a otro usuario)
+        /// </summary>
+        /// <param name="request"></param>
+        /// <returns></returns>
+        [Authorize(Roles = Role.ADMIN)]
+        [HttpPut("updateAdminStatusUser", Name = "UpdateAdminStatusUser")]
+        [ProducesResponseType(typeof(Usuario), (int)HttpStatusCode.OK)]
+        public async Task<ActionResult<Usuario>> UpdateAdminStatusUser([FromBody] UpdateAdminStatusUserCommand request)
+        {
+            return await _mediator.Send(request);
+        }
+
+        /// <summary>
+        /// Método que me permite obtener el usuario por medio de su Id (El usuario admin obtiene al usuario)
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [Authorize(Roles = Role.ADMIN)]
+        [HttpGet("{id}", Name = "GetUsuarioById")]
+        [ProducesResponseType(typeof(AuthResponse), (int)HttpStatusCode.OK)]
+        public async Task<ActionResult<AuthResponse>> GetUsuarioById(string id)
+        {
+            var query = new GetUserByIdQuery(id);
+            return await _mediator.Send(query);
+        }
+
+        /// <summary>
+        /// Método que me permite obtener el usuario por medio de su token (estamos recibiendo el token por medio del header)
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [HttpGet("", Name = "CurrentUser")]
+        [ProducesResponseType(typeof(AuthResponse), (int)HttpStatusCode.OK)]
+        public async Task<ActionResult<AuthResponse>> GetUsuarioById()
+        {
+            var query = new GetUserByTokenQuery();
+            return await _mediator.Send(query);
+        }
+
+        /// <summary>
+        /// Método que me permite obtener el usuario por medio de su username (El usuario admin obtiene al usuario)
+        /// </summary>
+        /// <param name="username"></param>
+        /// <returns></returns>
+        [Authorize(Roles = Role.ADMIN)]
+        [HttpGet("username/{username}", Name = "GetUsuarioByUserName")]
+        [ProducesResponseType(typeof(AuthResponse), (int)HttpStatusCode.OK)]
+        public async Task<ActionResult<AuthResponse>> GetUsuarioByUserName(string username)
+        {
+            var query = new GetUserByUsernameQuery(username);
+            return await _mediator.Send(query);
+        }
+
+        /// <summary>
+        /// Ejecuta una consulta paginada de usuarios mediante MediatR, retornando la información
+        /// de usuarios según los parámetros de búsqueda y paginación especificados.
+        /// Solo accesible para usuarios con rol de administrador.
+        /// </summary>
+        /// <param name="paginationUsersQuery"></param>
+        /// <returns></returns>
+        [Authorize(Roles = Role.ADMIN)]
+        [HttpGet("paginationAdmin", Name = "PaginationUser")]
+        [ProducesResponseType(typeof(PaginationVm<Usuario>), (int)HttpStatusCode.OK)]
+        public async Task<ActionResult<PaginationVm<Usuario>>> GetUsuarioByUserName([FromQuery] PaginationUsersQuery paginationUsersQuery)
+        {
+            var paginationUser = await _mediator.Send(paginationUsersQuery);
+            return Ok(paginationUser);
+        }
+    }
+}
