@@ -43,8 +43,4 @@
     <ProjectReference Include="..\Ecommerce.Domain\Ecommerce.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Features\Auths\Roles\" />
-  </ItemGroup>
-
 </Project>
