@@ -1,6 +1,7 @@
 ﻿using Ecommerce.Api.Errors;
+using Ecommerce.Application.Exceptions;
 using Newtonsoft.Json;
-using SendGrid.Helpers.Errors.Model;
+
 using System.Net;
 
 namespace Ecommerce.Api.Middlewares
@@ -33,6 +34,12 @@ namespace Ecommerce.Api.Middlewares
                 {
                     case NotFoundException notFoundException:
                         statusCode = (int)HttpStatusCode.NotFound;
+                        result = JsonConvert.SerializeObject(
+                            new CodeErrorException(
+                                statusCode,
+                                new string[] { notFoundException.Message },
+                                notFoundException.StackTrace!
+                            ));
                         break;
 
                     case FluentValidation.ValidationException validationException:
@@ -40,15 +47,30 @@ namespace Ecommerce.Api.Middlewares
                         var errors = validationException.Errors.Select(ers => ers.ErrorMessage).ToArray();
                         var validationJsons = JsonConvert.SerializeObject(errors);
                         result = JsonConvert.SerializeObject(
-                            new CodeErrorException(statusCode, errors, validationJsons)    
+                            new CodeErrorException(statusCode, errors, validationJsons)
                         );
                         break;
 
                     case BadRequestException badRequestException:
                         statusCode = (int)HttpStatusCode.BadRequest;
+                        #if DEBUG
+                            var details = badRequestException.StackTrace;
+                        #else
+                            var details = null;
+                        #endif
+                        result = JsonConvert.SerializeObject(
+                            new CodeErrorException(statusCode,
+                            new string[] { badRequestException.Message },
+                            details!));
                         break;
                     default:
                         statusCode = (int)HttpStatusCode.InternalServerError;
+                        result = JsonConvert.SerializeObject(
+                            new CodeErrorException(
+                                statusCode,
+                                new string[] { "Ocurrió un error inesperado en el servidor. Inténtelo más tarde." },
+                                ex.StackTrace!
+                            ));
                         break;
                 }
 
@@ -56,8 +78,8 @@ namespace Ecommerce.Api.Middlewares
                 {
                     result = JsonConvert.SerializeObject(
                         new CodeErrorException(statusCode,
-                                                new string[] { ex.Message }, 
-                                                ex.StackTrace));
+                                                new string[] { ex.Message },
+                                                ex.StackTrace!));
                 }
 
                 context.Response.StatusCode = statusCode;

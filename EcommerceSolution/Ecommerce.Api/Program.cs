@@ -1,3 +1,4 @@
+using Ecommerce.Api.Middlewares;
 using Ecommerce.Application;
 using Ecommerce.Application.Contracts.Infrastructure;
 using Ecommerce.Application.Features.Products.Queries.GetProductList;
@@ -31,7 +32,7 @@ builder.Services.AddDbContext<EcommerceDbContext>(options =>
 
 /* Referencia de comunicacion MediatR para utilizar el patron CQRS */
 builder.Services.AddMediatR(typeof(GetProductListQueryHandler).Assembly);
-
+builder.Services.AddHttpClient<IManageImageService, ManageImageService>();
 builder.Services.AddScoped<IManageImageService, ManageImageService>();
 
 // Add services to the container
@@ -125,7 +126,7 @@ app.UseSwaggerUI(c =>
 // Configure the HTTP request pipeline.
 
 //app.UseHttpsRedirection();
-
+app.UseMiddleware<ExceptionMiddleware>(); //usanis nuestri middleware
 app.UseAuthentication();
 app.UseAuthorization();
 
