@@ -1,0 +1,38 @@
+﻿using Ecommerce.Domain;
+
+namespace Ecommerce.Application.Specifications.Orders
+{
+    public class OrderSpecification : BaseSpecification<Order>
+    {
+        public OrderSpecification(OrderSpecificationParams orderParams)
+            : base(
+                x =>
+                (string.IsNullOrEmpty(orderParams.UserName) || x.CompradorUserName!.Contains(orderParams.UserName)) &&
+                (!orderParams.Id.HasValue || x.Id == orderParams.Id)
+            )
+        {
+            AddInclude(p => p.OrderItems!);
+            ApplyPaging(orderParams.PageSize * (orderParams.PageIndex - 1), orderParams.PageSize);
+
+            if (!string.IsNullOrEmpty(orderParams.Sort))
+            {
+                switch (orderParams.Sort)
+                {
+                    case "CreateDateAsc":
+                        AddOrderBy(p => p.CreateDate!);
+                        break;
+                    case "CreateDateDesc":
+                        AddOrderByDescending(p => p.CreateDate!);
+                        break;
+                    default:
+                        AddOrderBy(p => p.CreateDate!);
+                        break;
+                }
+            }
+            else
+            {
+                AddOrderByDescending(p => p.CreateDate!);
+            }
+        }
+    }
+}

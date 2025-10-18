@@ -5,7 +5,7 @@ using Ecommerce.Domain;
 using MediatR;
 using System.Linq.Expressions;
 
-namespace Ecommerce.Application.Features.Orders.Queries
+namespace Ecommerce.Application.Features.Orders.Queries.GetOrdersById
 {
     public class GetOrdersByIdQueryHandler : IRequestHandler<GetOrdersByIdQuery, OrderVm>
     {

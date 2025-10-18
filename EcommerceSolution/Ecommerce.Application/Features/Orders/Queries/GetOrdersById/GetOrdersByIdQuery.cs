@@ -1,7 +1,7 @@
 ﻿using Ecommerce.Application.Features.Orders.Vms;
 using MediatR;
 
-namespace Ecommerce.Application.Features.Orders.Queries
+namespace Ecommerce.Application.Features.Orders.Queries.GetOrdersById
 {
     public class GetOrdersByIdQuery : IRequest<OrderVm>
     {

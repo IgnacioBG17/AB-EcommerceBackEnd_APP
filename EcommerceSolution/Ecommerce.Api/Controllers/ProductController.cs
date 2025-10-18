@@ -41,12 +41,33 @@ namespace Ecommerce.Api.Controllers
             return Ok(productos);
         }
 
+        /// <summary>
+        /// Devuelve una lista paginada de productos **activos** para consumo público.
+        /// El filtro de estado se fuerza a <see cref="ProductStatus.Activo"/> sin requerirlo del cliente
+        /// </summary>
+        /// <param name="paginationProductsQuery"></param>
+        /// <returns></returns>
         [AllowAnonymous]
         [HttpGet("pagination", Name = "PaginationProduct")]
         [ProducesResponseType(typeof(PaginationVm<ProductVm>), (int)HttpStatusCode.OK)]
         public async Task<ActionResult<PaginationVm<ProductVm>>> PaginationProduct([FromQuery] PaginationProductsQuery paginationProductsQuery)
         {
             paginationProductsQuery.Status = ProductStatus.Activo;
+            var paginationProduct = await _mediator.Send(paginationProductsQuery);
+            return Ok(paginationProduct);
+        }
+
+        /// <summary>
+        /// Devuelve una lista paginada de productos para uso administrativo (incluye activos/inactivos).
+        /// Solo accesible para usuarios con rol <c>ADMIN</c>. Permite aplicar filtros y ordenamiento globales.
+        /// </summary>
+        /// <param name="paginationProductsQuery"></param>
+        /// <returns></returns>
+        [Authorize(Roles = Role.ADMIN)]
+        [HttpGet("paginationAdmin", Name = "PaginationProductAdmin")]
+        [ProducesResponseType(typeof(PaginationVm<ProductVm>), (int)HttpStatusCode.OK)]
+        public async Task<ActionResult<PaginationVm<ProductVm>>> PaginationProductAdmin([FromQuery] PaginationProductsQuery paginationProductsQuery)
+        {
             var paginationProduct = await _mediator.Send(paginationProductsQuery);
             return Ok(paginationProduct);
         }

@@ -3,8 +3,10 @@ using Ecommerce.Application.Features.Addresses.Commands.CreateAddress;
 using Ecommerce.Application.Features.Addresses.Vms;
 using Ecommerce.Application.Features.Orders.Commands.CreateOrder;
 using Ecommerce.Application.Features.Orders.Commands.UpdateOrder;
-using Ecommerce.Application.Features.Orders.Queries;
+using Ecommerce.Application.Features.Orders.Queries.GetOrdersById;
+using Ecommerce.Application.Features.Orders.Queries.PaginationOrders;
 using Ecommerce.Application.Features.Orders.Vms;
+using Ecommerce.Application.Features.Shared.Queries;
 using Ecommerce.Application.Models.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -54,6 +56,38 @@ namespace Ecommerce.Api.Controllers
         {
             var query = new GetOrdersByIdQuery(id);
             return Ok(await _mediator.Send(query));
+        }
+
+        /// <summary>
+        /// Devuelve una lista paginada de órdenes pertenecientes al usuario en sesión.
+        /// El nombre de usuario se obtiene del contexto de autenticación y se aplica al filtro,
+        /// sin necesidad de que el cliente lo envíe explícitamente.
+        /// </summary>
+        /// <param name="paginationOrdersParams"></param>
+        /// <returns></returns>
+        [HttpGet("paginationByUsername", Name = "PaginationOrderByUsername")]
+        [ProducesResponseType(typeof(PaginationVm<OrderVm>), (int)HttpStatusCode.OK)]
+        public async Task<ActionResult<PaginationVm<OrderVm>>> PaginationOrderByUsername([FromQuery] PaginationOrdersQuery paginationOrdersParams)
+        {
+            paginationOrdersParams.UserName = _authService.GetSessionUser();
+            var pagination = await _mediator.Send(paginationOrdersParams);
+            return Ok(pagination);
+        }
+
+        /// <summary>
+        /// Devuelve una lista paginada de órdenes para administración (todas las cuentas).
+        /// Solo accesible para usuarios con rol <c>ADMIN</c>. Permite aplicar filtros y ordenamiento
+        /// globales sobre las órdenes del sistema.
+        /// </summary>
+        /// <param name="paginationOrdersParams"></param>
+        /// <returns></returns>
+        [Authorize(Roles = Role.ADMIN)]
+        [HttpGet("paginationAdmin", Name = "PaginationOrder")]
+        [ProducesResponseType(typeof(PaginationVm<OrderVm>), (int)HttpStatusCode.OK)]
+        public async Task<ActionResult<PaginationVm<OrderVm>>> PaginationOrder([FromQuery] PaginationOrdersQuery paginationOrdersParams)
+        {
+            var pagination = await _mediator.Send(paginationOrdersParams);
+            return Ok(pagination);
         }
     }
 }
