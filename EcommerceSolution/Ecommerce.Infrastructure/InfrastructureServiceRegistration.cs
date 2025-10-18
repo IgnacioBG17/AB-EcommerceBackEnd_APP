@@ -2,6 +2,7 @@
 using Ecommerce.Application.Contracts.Infrastructure;
 using Ecommerce.Application.Models.Email;
 using Ecommerce.Application.Models.ImageManagement;
+using Ecommerce.Application.Models.Payment;
 using Ecommerce.Application.Models.Token;
 using Ecommerce.Application.Persistence;
 using Ecommerce.Infrastructure.MessageImplementation;
@@ -24,6 +25,7 @@ namespace Ecommerce.Infrastructure
             services.Configure<CloudinarySettings>(configuration.GetSection("CloudinarySettings"));
             services.Configure<UploadcareSettings>(configuration.GetSection("UploadcareSettings"));
             services.Configure<EmailFluentSettings>(configuration.GetSection("EmailFluentSettings"));
+            services.Configure<StripeSettings>(configuration.GetSection("StripeSettings"));
 
             services.AddTransient<IAuthService, AuthService>();
             services.AddTransient<IEmailService, EmailService>();

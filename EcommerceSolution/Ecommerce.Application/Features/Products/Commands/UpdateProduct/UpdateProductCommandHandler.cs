@@ -4,7 +4,6 @@ using Ecommerce.Application.Features.Products.Queries.Vms;
 using Ecommerce.Application.Persistence;
 using Ecommerce.Domain;
 using MediatR;
-using MimeKit.Cryptography;
 
 namespace Ecommerce.Application.Features.Products.Commands.UpdateProduct
 {
