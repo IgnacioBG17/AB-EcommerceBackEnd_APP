@@ -7,6 +7,7 @@
         public string? Producto { get; set; }
         public decimal Precio { get; set; }
         public int Cantidad { get; set; }
+        public string? Imagen { get; set; }
         public string? Categoria { get; set; }
         public int Stock { get; set; }
         public decimal TotalLine
