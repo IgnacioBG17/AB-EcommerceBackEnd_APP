@@ -13,7 +13,8 @@ namespace Ecommerce.Application.Specifications.Products
                  (!productParams.CategoryId.HasValue || x.CategoryId == productParams.CategoryId) &&
                  (!productParams.PrecioMin.HasValue || x.Precio >= productParams.PrecioMin) &&
                  (!productParams.PrecioMax.HasValue || x.Precio <= productParams.PrecioMax) &&
-                 (!productParams.Status.HasValue || x.Status == productParams.Status)
+                 (!productParams.Status.HasValue || x.Status == productParams.Status) &&
+                 (!productParams.Rating.HasValue || x.Rating == productParams.Rating) 
             )
         {
             AddInclude(p => p.Reviews!);
