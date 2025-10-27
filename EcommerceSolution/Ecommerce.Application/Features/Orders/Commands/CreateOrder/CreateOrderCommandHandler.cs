@@ -126,7 +126,7 @@ namespace Ecommerce.Application.Features.Orders.Commands.CreateOrder
                 //data que se le envia al stripe
                 var options = new PaymentIntentCreateOptions
                 {
-                    Amount = (long)order.Total,
+                    Amount = (long)Math.Round(order.Total * 100),
                     Currency = "usd",
                     PaymentMethodTypes = new List<string> { "card" }
                 };
@@ -141,7 +141,7 @@ namespace Ecommerce.Application.Features.Orders.Commands.CreateOrder
                 // Cada vez que cambies el monto todal de la compra hay que actualizar el intent
                 var options = new PaymentIntentUpdateOptions
                 {
-                    Amount = (long)order.Total
+                    Amount = (long)Math.Round(order.Total * 100)
                 };
                 await service.UpdateAsync(order.PaymentIntentId, options);
             }
