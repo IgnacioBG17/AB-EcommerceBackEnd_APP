@@ -25,6 +25,7 @@ namespace Ecommerce.Infrastructure
             services.Configure<CloudinarySettings>(configuration.GetSection("CloudinarySettings"));
             services.Configure<UploadcareSettings>(configuration.GetSection("UploadcareSettings"));
             services.Configure<EmailFluentSettings>(configuration.GetSection("EmailFluentSettings"));
+            services.Configure<EmailSendGridSettings>(configuration.GetSection("EmailSendGridSettings"));
             services.Configure<StripeSettings>(configuration.GetSection("StripeSettings"));
 
             services.AddTransient<IAuthService, AuthService>();

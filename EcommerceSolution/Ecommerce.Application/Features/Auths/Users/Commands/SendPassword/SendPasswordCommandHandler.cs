@@ -38,7 +38,8 @@ namespace Ecommerce.Application.Features.Auths.Users.Commands.SendPassword
                 Subject = "Cambiar el password"
             };
 
-            var result = await _serviceEmail.SendEmailAsync(emailMessage, token);
+            //var result = await _serviceEmail.SendEmailAsync(emailMessage, token);
+            var result = await _serviceEmail.SendEmailSengridAsync(emailMessage, token);
 
             if (!result)
             {
