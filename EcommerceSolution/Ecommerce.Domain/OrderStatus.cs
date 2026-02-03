@@ -11,6 +11,6 @@ namespace Ecommerce.Domain
         [EnumMember(Value = "El producto fue enviado")]
         Enviado,
         [EnumMember(Value = "El pago tuvo  Errores")]
-        Errpor
+        Error
     }
 }

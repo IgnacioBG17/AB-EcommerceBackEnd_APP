@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Ecommerce.Application.Contracts.Identity;
+using Ecommerce.Application.Contracts.Stripe;
 using Ecommerce.Application.Features.Orders.Vms;
 using Ecommerce.Application.Models.Payment;
 using Ecommerce.Application.Persistence;
@@ -7,7 +8,6 @@ using Ecommerce.Domain;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using Stripe;
 using System.Linq.Expressions;
 
 namespace Ecommerce.Application.Features.Orders.Commands.CreateOrder
@@ -19,140 +19,152 @@ namespace Ecommerce.Application.Features.Orders.Commands.CreateOrder
         private readonly IAuthService _authService;
         private readonly UserManager<Usuario> _userManager;
         private readonly StripeSettings _stripeSettings;
+        private readonly IStripePaymentService _stripePaymentService;
 
-        public CreateOrderCommandHandler(IUnitOfWork unitOfWork,
-                                        IMapper mapper,
-                                        IAuthService authService,
-                                        UserManager<Usuario> userManager,
-                                        IOptions<StripeSettings> stripeSettings)
+        public CreateOrderCommandHandler(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            IAuthService authService,
+            UserManager<Usuario> userManager,
+            IOptions<StripeSettings> stripeSettings,
+            IStripePaymentService stripePaymentService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _authService = authService;
             _userManager = userManager;
             _stripeSettings = stripeSettings.Value;
+            _stripePaymentService = stripePaymentService;
         }
 
         public async Task<OrderVm> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
         {
-            var orderPending = await _unitOfWork.Repository<Order>().GetEntityAsync(
-                x => x.CompradorUserName == _authService.GetSessionUser() && x.Status == OrderStatus.Pending,
+            var username = _authService.GetSessionUser();
+
+            // 1️. Obtener carrito con items
+            var includes = new List<Expression<Func<ShoppingCart, object>>>
+            {
+                c => c.ShoppingCartItems!.OrderBy(i => i.Producto)
+            };
+
+            var shoppingCart = await _unitOfWork.Repository<ShoppingCart>()
+                .GetEntityAsync(x => x.ShoppingCartMasterId == request.ShoppingCartId, includes, false);
+
+            if (shoppingCart == null || !shoppingCart.ShoppingCartItems!.Any())
+                throw new Exception("El carrito está vacío");
+
+            // 2️. Usuario autenticado
+            var user = await _userManager.FindByNameAsync(username);
+            if (user is null)
+                throw new Exception("Usuario no autenticado");
+
+            // 3️. Calcular totales
+            var subTotal = Math.Round(shoppingCart.ShoppingCartItems!.Sum(x => x.Precio * x.Cantidad), 2);
+            var impuesto = Math.Round(subTotal * 0.18m, 2);
+            var precioEnvio = subTotal < 100 ? 10 : 25;
+            var total = subTotal + impuesto + precioEnvio;
+
+            // 4️. Buscar orden pendiente (NO BORRARLA)
+            var order = await _unitOfWork.Repository<Order>().GetEntityAsync(
+                x => x.CompradorUserName == username && x.Status == OrderStatus.Pending,
                 null,
                 true
             );
 
-            if (orderPending is not null)
+            // 5️. Dirección
+            var direccion = await _unitOfWork.Repository<Domain.Address>()
+                .GetEntityAsync(x => x.UserName == username, null, false);
+
+            if (direccion == null)
+                throw new Exception("Dirección no encontrada");
+
+            // 6️. Crear o actualizar orden
+            if (order == null)
             {
-                await _unitOfWork.Repository<Order>().DeleteAsync(orderPending);
-            }
-
-            var includes = new List<Expression<Func<ShoppingCart, object>>>();
-            includes.Add(p => p.ShoppingCartItems!.OrderBy(x => x.Producto));
-
-            var shoppingCart = await _unitOfWork.Repository<ShoppingCart>().GetEntityAsync(
-                x => x.ShoppingCartMasterId == request.ShoppingCartId,
-                includes,
-                false
-            );
-
-            var user = await _userManager.FindByNameAsync(_authService.GetSessionUser());
-            if (user is null)
-            {
-                throw new Exception("El usuario no esta autenticado");
-            }
-
-            var direccion = await _unitOfWork.Repository<Domain.Address>().GetEntityAsync(
-                x => x.UserName == user.UserName,
-                null,
-                false
-            );
-
-            OrderAddress orderAddress = new OrderAddress()
-            {
-                Direccion = direccion.Direccion,
-                Ciudad = direccion.Ciudad,
-                CodigoPostal = direccion.CodigoPostal,
-                Pais = direccion.Pais,
-                Departamento = direccion.Departamento,
-                UserName = direccion.UserName
-            };
-
-            await _unitOfWork.Repository<OrderAddress>().AddAsync(orderAddress);
-
-            var subTotal = Math.Round(shoppingCart.ShoppingCartItems!.Sum(x => x.Precio * x.Cantidad), 2);
-            var impuesto = Math.Round(subTotal * Convert.ToDecimal(0.18), 2);
-            var precioEnvio = subTotal < 100 ? 10 : 25;
-            var total = subTotal + impuesto + precioEnvio;
-
-            var nombreComprador = $"{user.Nombre} {user.Apellido}";
-            var order = new Order(nombreComprador, user.UserName!, orderAddress, subTotal, total, impuesto, precioEnvio);
-
-            await _unitOfWork.Repository<Order>().AddAsync(order);
-
-            //Elementos de la orden
-            var items = new List<OrderItem>();
-
-            foreach (var shoppingElement in shoppingCart.ShoppingCartItems!)
-            {
-                var orderItem = new OrderItem
+                var orderAddress = new OrderAddress
                 {
-                    ProductNombre = shoppingElement.Producto,
-                    ProductId = shoppingElement.ProductId,
-                    ImagenUrl = shoppingElement.Imagen!,
-                    Precio = shoppingElement.Precio,
-                    Cantidad = shoppingElement.Cantidad,
-                    OrderId = order.Id
+                    Direccion = direccion.Direccion,
+                    Ciudad = direccion.Ciudad,
+                    CodigoPostal = direccion.CodigoPostal,
+                    Pais = direccion.Pais,
+                    Departamento = direccion.Departamento,
+                    UserName = direccion.UserName
                 };
 
-                items.Add(orderItem);
+                await _unitOfWork.Repository<OrderAddress>().AddAsync(orderAddress);
+
+                var nombreComprador = $"{user.Nombre} {user.Apellido}";
+
+                order = new Order(
+                    nombreComprador,
+                    username,
+                    orderAddress,
+                    subTotal,
+                    total,
+                    impuesto,
+                    precioEnvio
+                );
+
+                await _unitOfWork.Repository<Order>().AddAsync(order);
             }
+            else
+            {
+                // Actualizar totales (idealmente método de dominio)
+                order.SubTotal = subTotal;
+                order.Total = total;
+                order.Impuesto = impuesto;
+                order.PrecioEnvio = precioEnvio;
+
+                // Limpiar items previos
+                var oldItems = await _unitOfWork.Repository<OrderItem>()
+                    .GetAsync(x => x.OrderId == order.Id);
+
+                _unitOfWork.Repository<OrderItem>().DeleteRange(oldItems);
+            }
+
+            // 7️. Crear items de orden
+            var items = shoppingCart.ShoppingCartItems.Select(i => new OrderItem
+            {
+                ProductNombre = i.Producto,
+                ProductId = i.ProductId,
+                ImagenUrl = i.Imagen!,
+                Precio = i.Precio,
+                Cantidad = i.Cantidad,
+                OrderId = order.Id
+            }).ToList();
 
             _unitOfWork.Repository<OrderItem>().AddRange(items);
 
-            var resultado = await _unitOfWork.Complete();
+            var result = await _unitOfWork.Complete();
+            if (result <= 0)
+                throw new Exception("Error guardando la orden");
 
-            if (resultado <= 0)
+            // 8️. Stripe (crear o actualizar PaymentIntent)
+            var metadata = new Dictionary<string, string>
             {
-                throw new Exception("Error creando la orden de compra");
-            }
+                { "orderId", order.Id.ToString() },
+                { "ShoppingCartMasterId", shoppingCart.ShoppingCartMasterId.ToString()! }
+            };
 
-            //comunicacion con stripe para enviarle la promesa de pago
-            StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
-            var service = new PaymentIntentService();
-            PaymentIntent intent;
+            var amountInCents = (long)Math.Round(order.Total * 100);
 
             if (string.IsNullOrEmpty(order.PaymentIntentId))
             {
-                //data que se le envia al stripe
-                var options = new PaymentIntentCreateOptions
-                {
-                    Amount = (long)Math.Round(order.Total * 100),
-                    Currency = "usd",
-                    PaymentMethodTypes = new List<string> { "card" }
-                };
+                var intent = await _stripePaymentService
+                    .CreatePaymentIntentAsync(amountInCents, "usd", metadata);
 
-                intent = await service.CreateAsync(options);
                 order.PaymentIntentId = intent.Id;
                 order.ClientSecret = intent.ClientSecret;
                 order.StripeApiKey = _stripeSettings.Publishblekey;
             }
             else
             {
-                // Cada vez que cambies el monto todal de la compra hay que actualizar el intent
-                var options = new PaymentIntentUpdateOptions
-                {
-                    Amount = (long)Math.Round(order.Total * 100)
-                };
-                await service.UpdateAsync(order.PaymentIntentId, options);
+                await _stripePaymentService
+                    .UpdatePaymentIntentAmountAsync(order.PaymentIntentId, amountInCents);
             }
 
             _unitOfWork.Repository<Order>().UpdateEntity(order);
-            var resultadoOrder = await _unitOfWork.Complete();
-
-            if (resultadoOrder <= 0)
-            {
-                throw new Exception("Error creando el payment intent en stripe");
-            }
+            await _unitOfWork.Complete();
 
             return _mapper.Map<OrderVm>(order);
         }

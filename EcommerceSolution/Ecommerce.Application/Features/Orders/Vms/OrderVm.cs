@@ -39,7 +39,7 @@ namespace Ecommerce.Application.Features.Orders.Vms
                      
                     case OrderStatus.Enviado:
                         return OrderStatusLabel.ENVIADO;
-                    case OrderStatus.Errpor:
+                    case OrderStatus.Error:
                         return OrderStatusLabel.ERROR;
                     default:
                         return OrderStatusLabel.ERROR;

@@ -4,5 +4,6 @@
     {
         public string? Publishblekey { get; set; }
         public string? SecretKey { get; set; }
+        public string? WebhookSecret { get; set; }
     }
 }
