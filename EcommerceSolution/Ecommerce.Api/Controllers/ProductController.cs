@@ -1,4 +1,4 @@
-﻿using Ecommerce.Application.Contracts.Infrastructure;
+﻿using Ecommerce.Application.Contracts.FileStorage;
 using Ecommerce.Application.Features.Products.Commands.CreateProduct;
 using Ecommerce.Application.Features.Products.Commands.DeleteProduct;
 using Ecommerce.Application.Features.Products.Commands.UpdateProduct;
@@ -22,12 +22,13 @@ namespace Ecommerce.Api.Controllers
     public class ProductController : ControllerBase
     {
         private readonly IMediator _mediator;
-        private readonly IManageImageService _manageImageService;
+        private readonly IBlobStorageService  _blobStorageService;
 
-        public ProductController(IMediator mediator, IManageImageService manageImageService)
+        public ProductController(IMediator mediator,
+                                IBlobStorageService blobStorageService)
         {
             _mediator = mediator;
-            _manageImageService = manageImageService;
+            _blobStorageService = blobStorageService;
         }
 
         [AllowAnonymous]
@@ -99,7 +100,7 @@ namespace Ecommerce.Api.Controllers
             {
                 foreach (var foto in request.Fotos)
                 {
-                    var resultImage = await _manageImageService.UploadImageAsync(new ImageData
+                    var resultImage = await _blobStorageService.UploadImageAzureAsync(new ImageData
                     {
                         ImageStream = foto.OpenReadStream(),
                         Nombre = foto.Name
@@ -131,29 +132,53 @@ namespace Ecommerce.Api.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         public async Task<ActionResult<ProductVm>> UpdateProduct([FromForm] UpdateProductCommand request)
         {
-            var listFotoUrls = new List<CreateProductImageCommand>();
+            var finalImageCommands = new List<CreateProductImageCommand>();
 
-            if (request.Fotos is not null)
+            // 1. Si hay fotos nuevas en el formulario
+            if (request.Fotos is not null && request.Fotos.Any())
             {
-                foreach (var foto in request.Fotos)
+                for (int i = 0; i < request.Fotos.Count; i++)
                 {
-                    var resultImage = await _manageImageService.UploadImageAsync(new ImageData
+                    var fotoNueva = request.Fotos[i];
+                    if (request.ImageUrls != null && i < request.ImageUrls.Count)
                     {
-                        ImageStream = foto.OpenReadStream(),
-                        Nombre = foto.Name
-                    });
+                        var oldPublicCode = request.ImageUrls[i].PublicCode;
+                        var resultImage = await _blobStorageService.UpdateImageAzureAsync(
+                            oldPublicCode!,
+                            new ImageData { ImageStream = fotoNueva.OpenReadStream(), Nombre = fotoNueva.FileName }
+                        );
 
-                    var fotoCommand = new CreateProductImageCommand
+                        finalImageCommands.Add(new CreateProductImageCommand
+                        {
+                            PublicCode = resultImage.PublicId,
+                            Url = resultImage.Url
+                        });
+                    }
+                    else
                     {
-                        PublicCode = resultImage.PublicId,
-                        Url = resultImage.Url
-                    };
+                        var resultImage = await _blobStorageService.UploadImageAzureAsync(new ImageData
+                        {
+                            ImageStream = fotoNueva.OpenReadStream(),
+                            Nombre = fotoNueva.FileName
+                        });
 
-                    listFotoUrls.Add(fotoCommand);
+                        finalImageCommands.Add(new CreateProductImageCommand
+                        {
+                            PublicCode = resultImage.PublicId,
+                            Url = resultImage.Url
+                        });
+                    }
                 }
-
-                request.ImageUrls = listFotoUrls;
             }
+
+            // 2. Si venían más imágenes en ImageUrls que no fueron reemplazadas, las mantenemos
+            if (request.ImageUrls != null && request.ImageUrls.Count > (request.Fotos?.Count ?? 0))
+            {
+                var restantes = request.ImageUrls.Skip(request.Fotos?.Count ?? 0);
+                finalImageCommands.AddRange(restantes);
+            }
+
+            request.ImageUrls = finalImageCommands;
 
             return await _mediator.Send(request);
         }

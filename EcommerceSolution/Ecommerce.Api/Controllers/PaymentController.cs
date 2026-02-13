@@ -1,6 +1,4 @@
-﻿using Ecommerce.Application.Features.Orders.Vms;
-using Ecommerce.Application.Features.Payments.Commands.CreatePayment;
-using Ecommerce.Application.Features.Payments.Commands.ProcessStripeWebhook;
+﻿using Ecommerce.Application.Features.Payments.Commands.ProcessStripeWebhook;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +15,6 @@ namespace Ecommerce.Api.Controllers
         public PaymentController(IMediator mediator)
         {
             _mediator = mediator;
-
         }
 
         /// <summary>

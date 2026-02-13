@@ -1,4 +1,5 @@
-﻿using Ecommerce.Application.Contracts.Identity;
+﻿using Ecommerce.Application.Contracts.FileStorage;
+using Ecommerce.Application.Contracts.Identity;
 using Ecommerce.Application.Contracts.Infrastructure;
 using Ecommerce.Application.Contracts.Stripe;
 using Ecommerce.Application.Models.Email;
@@ -10,6 +11,7 @@ using Ecommerce.Infrastructure.MessageImplementation;
 using Ecommerce.Infrastructure.Repositories;
 using Ecommerce.Infrastructure.Services;
 using Ecommerce.Infrastructure.Services.Auth;
+using Ecommerce.Infrastructure.Services.FileStorage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -25,13 +27,14 @@ namespace Ecommerce.Infrastructure
 
             services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
             services.Configure<CloudinarySettings>(configuration.GetSection("CloudinarySettings"));
-            services.Configure<UploadcareSettings>(configuration.GetSection("UploadcareSettings"));
             services.Configure<EmailFluentSettings>(configuration.GetSection("EmailFluentSettings"));
             services.Configure<StripeSettings>(configuration.GetSection("StripeSettings"));
+            services.Configure<AzureBlobStorageSettings>(configuration.GetSection("AzureBlobStorageSettings"));
 
             services.AddTransient<IAuthService, AuthService>();
             services.AddTransient<IEmailService, EmailService>();
             services.AddScoped<IStripePaymentService, StripePaymentService>();
+            services.AddScoped<IBlobStorageService, BlobStorageService>();
 
             return services;
         }

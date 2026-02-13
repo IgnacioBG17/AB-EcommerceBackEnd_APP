@@ -1,4 +1,5 @@
-﻿using Ecommerce.Application.Contracts.Infrastructure;
+﻿using Ecommerce.Application.Contracts.FileStorage;
+using Ecommerce.Application.Contracts.Infrastructure;
 using Ecommerce.Application.Features.Auths.Roles.Queries.GetRoles;
 using Ecommerce.Application.Features.Auths.Users.Commands.LoginUser;
 using Ecommerce.Application.Features.Auths.Users.Commands.RegisterUser;
@@ -29,12 +30,13 @@ namespace Ecommerce.Api.Controllers
     public class UsuarioController : ControllerBase
     {
         private IMediator _mediator;
-        private IManageImageService _manageImageService;
+        private readonly IBlobStorageService _blobStorageService;
 
-        public UsuarioController(IMediator mediator, IManageImageService manageImageService)
+        public UsuarioController(IMediator mediator, 
+                                IBlobStorageService blobStorageService)
         {
             _mediator = mediator;
-            _manageImageService = manageImageService;
+            _blobStorageService = blobStorageService;
         }
 
         /// <summary>
@@ -62,7 +64,7 @@ namespace Ecommerce.Api.Controllers
         {
             if (request.Foto is not null)
             {
-                var resultImage = await _manageImageService.UploadImageAsync(new ImageData
+                var resultImage = await _blobStorageService.UploadImageAzureAsync(new ImageData
                 {
                     ImageStream = request.Foto!.OpenReadStream(),
                     Nombre = request.Foto.Name
@@ -124,7 +126,7 @@ namespace Ecommerce.Api.Controllers
         {
             if (request.Foto is not null)
             {
-                var resultImage = await _manageImageService.UploadImageAsync(new ImageData
+                var resultImage = await _blobStorageService.UploadImageAzureAsync(new ImageData
                 {
                     ImageStream = request.Foto!.OpenReadStream(),
                     Nombre = request.Foto!.Name

@@ -10,6 +10,7 @@ namespace Ecommerce.Application.Features.Products.Queries.Vms
         public int Id { get; set; }
         public string? Nombre { get; set; }
         public decimal Precio { get; set; }
+        public string? Descripcion { get; set; }
         public int Rating { get; set; }
         public string? Vendedor { get; set; }
         public int Stock { get; set; }
