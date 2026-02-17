@@ -28,6 +28,7 @@ namespace Ecommerce.Infrastructure
             services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
             services.Configure<CloudinarySettings>(configuration.GetSection("CloudinarySettings"));
             services.Configure<EmailFluentSettings>(configuration.GetSection("EmailFluentSettings"));
+            services.Configure<EmailSendGridSettings>(configuration.GetSection("EmailSendGridSettings"));
             services.Configure<StripeSettings>(configuration.GetSection("StripeSettings"));
             services.Configure<AzureBlobStorageSettings>(configuration.GetSection("AzureBlobStorageSettings"));
 
