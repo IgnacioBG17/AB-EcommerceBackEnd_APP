@@ -7,6 +7,7 @@ namespace Ecommerce.Application.Features.Orders.Vms
     public class OrderVm
     {
         public int Id { get; set; }
+        public DateTime CreateDate { get; set; }
         public AddressVm? OrderAddress { get; set; }
         public List<OrderItemVm>? OrderItems { get; set; }
         public decimal Subtotal { get; set; }
