@@ -3,7 +3,7 @@ using Ecommerce.Application.Models.Payment;
 using Microsoft.Extensions.Options;
 using Stripe;
 
-namespace Ecommerce.Infrastructure.Services
+namespace Ecommerce.Infrastructure.Services.Stripe
 {
     public class StripePaymentService : IStripePaymentService
     {

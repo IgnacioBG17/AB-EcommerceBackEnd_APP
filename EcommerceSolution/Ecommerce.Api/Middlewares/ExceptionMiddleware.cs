@@ -1,7 +1,6 @@
 ﻿using Ecommerce.Api.Errors;
 using Ecommerce.Application.Exceptions;
 using Newtonsoft.Json;
-
 using System.Net;
 
 namespace Ecommerce.Api.Middlewares
@@ -32,59 +31,59 @@ namespace Ecommerce.Api.Middlewares
 
                 switch (ex)
                 {
+                    case UnauthorizedException authEx:
+                        statusCode = (int)HttpStatusCode.Unauthorized;
+                        result = CreateJsonError(statusCode, new[] { authEx.Message }, authEx.StackTrace);
+                        break;
+
+                    case ForbiddenException forbEx:
+                        statusCode = (int)HttpStatusCode.Forbidden;
+                        result = CreateJsonError(statusCode, new[] { forbEx.Message }, forbEx.StackTrace);
+                        break;
                     case NotFoundException notFoundException:
                         statusCode = (int)HttpStatusCode.NotFound;
-                        result = JsonConvert.SerializeObject(
-                            new CodeErrorException(
-                                statusCode,
-                                new string[] { notFoundException.Message },
-                                notFoundException.StackTrace!
-                            ));
+                        result = CreateJsonError(statusCode, new[] { notFoundException.Message }, notFoundException.StackTrace);
                         break;
 
                     case FluentValidation.ValidationException validationException:
                         statusCode = (int)HttpStatusCode.BadRequest;
                         var errors = validationException.Errors.Select(ers => ers.ErrorMessage).ToArray();
-                        var validationJsons = JsonConvert.SerializeObject(errors);
-                        result = JsonConvert.SerializeObject(
-                            new CodeErrorException(statusCode, errors, validationJsons)
-                        );
+                        result = CreateJsonError(statusCode, errors, validationException.StackTrace);
                         break;
 
                     case BadRequestException badRequestException:
                         statusCode = (int)HttpStatusCode.BadRequest;
-                        #if DEBUG
-                            var details = badRequestException.StackTrace;
-                        #else
-                            var details = null;
-                        #endif
-                        result = JsonConvert.SerializeObject(
-                            new CodeErrorException(statusCode,
-                            new string[] { badRequestException.Message },
-                            details!));
+                        result = CreateJsonError(statusCode, new[] { badRequestException.Message }, badRequestException.StackTrace);
                         break;
                     default:
                         statusCode = (int)HttpStatusCode.InternalServerError;
-                        result = JsonConvert.SerializeObject(
-                            new CodeErrorException(
-                                statusCode,
-                                new string[] { "Ocurrió un error inesperado en el servidor. Inténtelo más tarde." },
-                                ex.StackTrace!
-                            ));
+                        result = CreateJsonError(statusCode, new[] { "Ocurrió un error inesperado en el servidor. Inténtelo más tarde." }, ex.StackTrace);
                         break;
                 }
 
                 if (string.IsNullOrEmpty(result))
                 {
-                    result = JsonConvert.SerializeObject(
-                        new CodeErrorException(statusCode,
-                                                new string[] { ex.Message },
-                                                ex.StackTrace!));
+                    result = CreateJsonError(statusCode, new string[] { ex.Message }, ex.StackTrace!);
                 }
 
                 context.Response.StatusCode = statusCode;
                 await context.Response.WriteAsync(result);
             }
+        }
+
+        private string CreateJsonError(int statusCode, string[] messages, string? stackTrace)
+        {
+#if DEBUG
+            var details = stackTrace;
+#else
+            var details = null;
+#endif
+
+            return JsonConvert.SerializeObject(new CodeErrorException(
+                statusCode,
+                messages,
+                details!
+            ));
         }
     }
 }

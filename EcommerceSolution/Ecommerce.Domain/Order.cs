@@ -7,11 +7,12 @@ namespace Ecommerce.Domain
     {
         public Order() { }
 
-        public Order(string? compradorNombre, string? compradorEmail, OrderAddress orderAddress, 
+        public Order(string? compradorNombre, string? compradorUsername, string compradorEmail, OrderAddress orderAddress, 
                     decimal subTotal, decimal total, decimal impuesto, decimal precioEnvio)
         {
             CompradorNombre = compradorNombre;
-            CompradorUserName = compradorEmail;
+            CompradorUserName = compradorUsername;
+            CompradorEmail = compradorEmail;
             OrderAddress = orderAddress;
             SubTotal = subTotal;
             Total = total;
@@ -21,6 +22,7 @@ namespace Ecommerce.Domain
 
         public string? CompradorNombre { get; set; }
         public string? CompradorUserName { get; set; }
+        public string? CompradorEmail { get; set; }
         public OrderAddress OrderAddress { get; set; }
         public IReadOnlyList<OrderItem> OrderItems { get; set; }
         [Column(TypeName = "decimal(10,2)")]

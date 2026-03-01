@@ -1,5 +1,4 @@
 ﻿using Ecommerce.Application.Contracts.FileStorage;
-using Ecommerce.Application.Contracts.Infrastructure;
 using Ecommerce.Application.Features.Auths.Roles.Queries.GetRoles;
 using Ecommerce.Application.Features.Auths.Users.Commands.LoginUser;
 using Ecommerce.Application.Features.Auths.Users.Commands.RegisterUser;

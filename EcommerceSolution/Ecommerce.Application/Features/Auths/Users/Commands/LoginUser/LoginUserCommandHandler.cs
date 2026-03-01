@@ -23,8 +23,8 @@ namespace Ecommerce.Application.Features.Auths.Users.Commands.LoginUser
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
 
-        public LoginUserCommandHandler(UserManager<Usuario> userManager, SignInManager<Usuario> sigInManager, 
-                                        RoleManager<IdentityRole> roleManager, IAuthService authService, 
+        public LoginUserCommandHandler(UserManager<Usuario> userManager, SignInManager<Usuario> sigInManager,
+                                        RoleManager<IdentityRole> roleManager, IAuthService authService,
                                         IMapper mapper, IUnitOfWork unitOfWork)
         {
             _userManager = userManager;
@@ -45,18 +45,23 @@ namespace Ecommerce.Application.Features.Auths.Users.Commands.LoginUser
 
             if (!user.IsActive)
             {
-                throw new Exception($"El usuario esta bloqueado, contacte al admin");
+                throw new ForbiddenException("Esta cuenta ha sido desactivada. Contacte al administrador.");
             }
 
             var resultado = await _sigInManager.CheckPasswordSignInAsync(user, request.Password!, false);
 
             if (!resultado.Succeeded)
             {
-                throw new Exception("Las credenciales del usuario son erroneas");
+                throw new UnauthorizedException("El correo o la contraseña son incorrectos.");
+            }
+
+            if (await _userManager.IsLockedOutAsync(user))
+            {
+                throw new ForbiddenException("La cuenta está bloqueada temporalmente por demasiados intentos fallidos.");
             }
 
             var direccionEnvio = await _unitOfWork.Repository<Address>().GetEntityAsync(
-                x => x.UserName == user.UserName    
+                x => x.UserName == user.UserName
             );
 
             var roles = await _userManager.GetRolesAsync(user);

@@ -37,7 +37,7 @@ namespace Ecommerce.Api.Controllers
 
             await _mediator.Send(new ProcessStripeWebhookCommand(
                 json,
-                signatureHeader
+                signatureHeader!
             ));
 
             return Ok();

@@ -9,9 +9,9 @@ using Ecommerce.Application.Models.Token;
 using Ecommerce.Application.Persistence;
 using Ecommerce.Infrastructure.MessageImplementation;
 using Ecommerce.Infrastructure.Repositories;
-using Ecommerce.Infrastructure.Services;
 using Ecommerce.Infrastructure.Services.Auth;
 using Ecommerce.Infrastructure.Services.FileStorage;
+using Ecommerce.Infrastructure.Services.Stripe;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 

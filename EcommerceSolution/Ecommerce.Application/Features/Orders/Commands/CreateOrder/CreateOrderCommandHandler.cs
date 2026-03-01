@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Ecommerce.Application.Contracts.Identity;
 using Ecommerce.Application.Contracts.Stripe;
+using Ecommerce.Application.Exceptions;
 using Ecommerce.Application.Features.Orders.Vms;
 using Ecommerce.Application.Models.Payment;
 using Ecommerce.Application.Persistence;
@@ -56,7 +57,7 @@ namespace Ecommerce.Application.Features.Orders.Commands.CreateOrder
             // 2️. Usuario autenticado
             var user = await _userManager.FindByNameAsync(username);
             if (user is null)
-                throw new Exception("Usuario no autenticado");
+                throw new UnauthorizedException("Usuario no autenticado");
 
             // 3️. Calcular totales
             var subTotal = Math.Round(shoppingCart.ShoppingCartItems!.Sum(x => x.Precio * x.Cantidad), 2);
@@ -98,6 +99,7 @@ namespace Ecommerce.Application.Features.Orders.Commands.CreateOrder
                 order = new Order(
                     nombreComprador,
                     username,
+                    user.Email!,
                     orderAddress,
                     subTotal,
                     total,
