@@ -23,13 +23,14 @@ namespace Ecommerce.Application.Features.Auths.Users.Commands.UpdateAdminUser
 
         public async Task<Usuario> Handle(UpdateAdminUserCommand request, CancellationToken cancellationToken)
         {
-            //usuario
-            var updateUsuario = await _userManager.FindByIdAsync(request.Id);
+            // 1. Buscar el usuario
+            var updateUsuario = await _userManager.FindByIdAsync(request.Id!);
             if (updateUsuario is null)
             {
                 throw new BadRequestException("El usuario no existe");
             }
 
+            // 2. Actualizar datos básicos
             updateUsuario.Nombre = request.Nombre;
             updateUsuario.Apellido = request.Apellido;
             updateUsuario.Telefono = request.Telefono;
@@ -41,14 +42,32 @@ namespace Ecommerce.Application.Features.Auths.Users.Commands.UpdateAdminUser
                 throw new Exception("No se pudo actualizar el usuario");
             }
 
-            //rol
+            // 3. Manejo de Roles
             var role = await _roleManager.FindByNameAsync(request.Role!);
             if (role is null)
             {
-                throw new Exception("El Rol asignado no existe");
+                throw new BadRequestException("El Rol asignado no existe");
             }
 
-            await _userManager.AddToRoleAsync(updateUsuario, role.Name!);
+            // Obtener los roles actuales que tiene el usuario en la DB
+            var rolesActuales = await _userManager.GetRolesAsync(updateUsuario);
+
+            if (rolesActuales.Count != 1 || rolesActuales[0] != request.Role)
+            {
+                // 3. Eliminamos TODOS los roles que tenga (limpiamos la mesa)
+                if (rolesActuales.Any())
+                {
+                    await _userManager.RemoveFromRolesAsync(updateUsuario, rolesActuales);
+                }
+
+                // 4. Asignamos el rol único solicitado
+                var resultadoRol = await _userManager.AddToRoleAsync(updateUsuario, request.Role!);
+
+                if (!resultadoRol.Succeeded)
+                {
+                    throw new Exception("Error al asignar el rol único");
+                }
+            }
 
             return updateUsuario;
         }

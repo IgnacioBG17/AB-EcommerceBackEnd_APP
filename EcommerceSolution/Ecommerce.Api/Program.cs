@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -29,6 +30,13 @@ builder.Services.AddDbContext<EcommerceDbContext>(options =>
         b => b.MigrationsAssembly(typeof(EcommerceDbContext).Assembly.FullName)
     )
 );
+
+/* Redis */
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "EcommerceDashboard_";
+});
 
 /* Referencia de comunicacion MediatR para utilizar el patron CQRS */
 builder.Services.AddMediatR(typeof(GetProductListQueryHandler).Assembly);

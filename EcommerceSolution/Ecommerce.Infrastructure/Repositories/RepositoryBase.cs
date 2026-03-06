@@ -138,5 +138,10 @@ namespace Ecommerce.Infrastructure.Repositories
         {
             return SpecificationEvaluator<T>.GetQuery(_context.Set<T>().AsQueryable(), spec);
         }
+
+        public IQueryable<T> Query()
+        {
+            return _context.Set<T>().AsQueryable();
+        }
     }
 }

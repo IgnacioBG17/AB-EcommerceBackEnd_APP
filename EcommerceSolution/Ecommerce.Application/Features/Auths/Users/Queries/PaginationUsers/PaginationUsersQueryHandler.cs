@@ -47,6 +47,7 @@ namespace Ecommerce.Application.Features.Auths.Users.Queries.PaginationUsers
 
                 usersVm.Add(new UserVm
                 {
+                    Id = user.Id,
                     UserName = user.UserName!,
                     Nombre = user.Nombre,
                     Apellido = user.Apellido,
